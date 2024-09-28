@@ -50,6 +50,7 @@ const AARCH64: &str = "aarch64";
 const ARM: &str = "arm";
 const WASM32: &str = "wasm32";
 
+// 需要编译的代码
 #[rustfmt::skip]
 const RING_SRCS: &[(&[&str], &str)] = &[
     (&[], "crypto/curve25519/curve25519.c"),
