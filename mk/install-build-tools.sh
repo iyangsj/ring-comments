@@ -68,6 +68,7 @@ case ${target-} in
   ;;
 esac
 
+# 根据平台安装必要的编译工具
 case ${target-} in
 aarch64-apple-tvos | aarch64-apple-tvos-sim | \
 aarch64-apple-visionos | aarch64-apple-visionos-sim | \

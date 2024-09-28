@@ -62,6 +62,7 @@ done
 # See comments in install-build-tools.sh.
 llvm_version=19
 
+// 根据目标，设置关机的环境变量
 use_clang=
 case $target in
    aarch64-linux-android)

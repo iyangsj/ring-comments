@@ -51,6 +51,7 @@ const ARM: &str = "arm";
 const WASM32: &str = "wasm32";
 
 // 需要编译的代码
+// (平台列表，代码文件)
 #[rustfmt::skip]
 const RING_SRCS: &[(&[&str], &str)] = &[
     (&[], "crypto/curve25519/curve25519.c"),
@@ -124,6 +125,7 @@ const RING_TEST_SRCS: &[&str] = &[("crypto/constant_time_test.c")];
 
 const PREGENERATED: &str = "pregenerated";
 
+// 返回CPP编译器参数
 fn cpp_flags(compiler: &cc::Tool) -> &'static [&'static str] {
     if !compiler.is_like_msvc() {
         static NON_MSVC_FLAGS: &[&str] = &[
@@ -167,6 +169,8 @@ fn cpp_flags(compiler: &cc::Tool) -> &'static [&'static str] {
     }
 }
 
+// 汇编代码目标平台
+// （操作系统、处理器架构、
 // None means "any OS" or "any target". The first match in sequence order is
 // taken.
 const ASM_TARGETS: &[AsmTarget] = &[
@@ -234,6 +238,7 @@ impl AsmTarget {
     }
 }
 
+// 具有LINUX ABI的操作系统
 /// Operating systems that have the same ABI as Linux on every architecture
 /// mentioned in `ASM_TARGETS`.
 const LINUX_ABI: &[&str] = &[
@@ -254,6 +259,7 @@ const LINUX_ABI: &[&str] = &[
 const WIN32N: &str = "win32n";
 const NASM: &str = "nasm";
 
+// 具有APPLE_ABI的操心系统
 /// Operating systems that have the same ABI as macOS on every architecture
 /// mentioned in `ASM_TARGETS`.
 const APPLE_ABI: &[&str] = &["ios", "macos", "tvos", "visionos", "watchos"];
@@ -283,6 +289,7 @@ fn main() {
         &core_name_and_version
     );
 
+    // 环境变量RING_PREGENERATE_ASM 用于预先生成汇编代码
     const RING_PREGENERATE_ASM: &str = "RING_PREGENERATE_ASM";
     match env::var_os(RING_PREGENERATE_ASM).as_deref() {
         Some(s) if s == "1" => {
@@ -295,6 +302,7 @@ fn main() {
     }
 }
 
+// 构建
 fn ring_build_rs_main(c_root_dir: &Path, core_name_and_version: &str) {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let out_dir = PathBuf::from(out_dir);
@@ -314,6 +322,7 @@ fn ring_build_rs_main(c_root_dir: &Path, core_name_and_version: &str) {
     // don't do this for packaged builds.
     let force_warnings_into_errors = is_git;
 
+    // 获取编译目标平台
     let target = Target {
         arch,
         os,
@@ -346,6 +355,7 @@ fn ring_build_rs_main(c_root_dir: &Path, core_name_and_version: &str) {
         out_dir.clone()
     };
 
+    // 编译C代码
     build_c_code(
         asm_target,
         &target,
@@ -436,6 +446,7 @@ fn build_c_code(
         (vec![], vec![])
     };
 
+    // 获取目标arch需要编译的代码
     let core_srcs = sources_for_arch(&target.arch)
         .into_iter()
         .filter(|p| !is_perlasm(p))
@@ -476,6 +487,8 @@ fn build_c_code(
     libs.iter()
         .for_each(|&(lib_name, srcs, asm_srcs, obj_srcs)| {
             let srcs = srcs.iter().chain(asm_srcs);
+
+            // 编译库
             build_library(
                 target,
                 c_root_dir,
@@ -493,6 +506,7 @@ fn build_c_code(
     );
 }
 
+// 返回c编译配置
 fn new_build(target: &Target, c_root_dir: &Path, include_dir: &Path) -> cc::Build {
     let mut b = cc::Build::new();
     configure_cc(&mut b, target, c_root_dir, include_dir);
@@ -508,13 +522,16 @@ fn build_library<'a>(
     include_dir: &Path,
     preassembled_objs: &[PathBuf],
 ) {
+    // 创建c编译配置
     let mut c = new_build(target, c_root_dir, include_dir);
 
+    // 指定配置文件
     // Compile all the (dirty) source files into object files.
     srcs.for_each(|src| {
         c.file(c_root_dir.join(src));
     });
 
+    // 指定汇编对象
     preassembled_objs.iter().for_each(|obj| {
         c.object(obj);
     });
@@ -525,6 +542,7 @@ fn build_library<'a>(
     // Handled below.
     let _ = c.cargo_metadata(false);
 
+    // 执行编译
     c.compile(
         lib_path
             .file_name()
@@ -532,6 +550,7 @@ fn build_library<'a>(
             .expect("No filename"),
     );
 
+    // 输出cargo指令
     // Link the library. This works even when the library doesn't need to be
     // rebuilt.
     println!("cargo:rustc-link-lib=static={}", lib_name);
@@ -634,6 +653,7 @@ fn run_command(mut cmd: Command) {
     }
 }
 
+// 获取指定arch需要编译的代码
 fn sources_for_arch(arch: &str) -> Vec<PathBuf> {
     RING_SRCS
         .iter()
